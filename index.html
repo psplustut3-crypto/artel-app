@@ -117,7 +117,7 @@
         }
     }
 
-    function switchRole(role) {
+        function switchRole(role) {
         const btnClient = document.getElementById('btn-client');
         const btnMaster = document.getElementById('btn-master');
         const clientScreen = document.getElementById('client-screen');
@@ -134,13 +134,21 @@
             masterScreen.classList.add('active');
             clientScreen.classList.remove('active');
             
-            if (!myMap) {
-                ymaps.ready(initMap);
-            } else {
+            // Безопасное включение карты: если Яндекс заблокирован, приложение НЕ сломается!
+            try {
+                if (typeof ymaps !== 'undefined') {
+                    if (!myMap) { ymaps.ready(initMap); } else { loadOrders(); }
+                } else {
+                    console.log("Сеть Яндекса штормит, грузим ленту без карты...");
+                    loadOrders();
+                }
+            } catch (err) {
+                console.log("Резервный запуск ленты:", err);
                 loadOrders();
             }
         }
     }
+
 
     function initMap() {
         myMap = new ymaps.Map("map", {
