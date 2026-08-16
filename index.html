@@ -1,365 +1,245 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Artel — мастера рядом</title>
-
-  <!-- Yandex Maps JS API 2.1 -->
-  <script src="https://api-maps.yandex.ru/2.1/?apikey=YOUR_YANDEX_MAPS_API_KEY&lang=ru_RU" type="text/javascript"></script>
-
-  <!-- Supabase JS client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/iife.min.js"></script>
-
-  <style>
-    :root {
-      --primary: #1f6feb;
-      --primary-dark: #1556b3;
-      --accent: #f59e0b;
-      --success: #16a34a;
-      --error: #dc2626;
-      --bg: #f6f8fb;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-      --radius: 14px;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-    }
-    header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #fff;
-      padding: 28px 20px 24px;
-      text-align: center;
-    }
-    header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
-    header p { margin: 6px 0 0; color: #cbd5e1; font-size: 15px; }
-    main { max-width: 1080px; margin: 0 auto; padding: 24px 20px 60px; }
-
-    .section-title {
-      font-size: 20px;
-      font-weight: 700;
-      margin: 28px 0 12px;
-    }
-
-    /* Map */
-    #map {
-      width: 100%;
-      height: 420px;
-      border-radius: var(--radius);
-      overflow: hidden;
-      box-shadow: var(--shadow);
-      background: #e8eef5;
-    }
-    .map-hint {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 14px;
-      margin-top: 8px;
-    }
-    .map-hint .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15);
-    }
-
-    /* Upload */
-    .upload-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      box-shadow: var(--shadow);
-    }
-    .upload-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .file-input-wrap {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-    }
-    .file-input-wrap input[type=file] {
-      position: absolute;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      opacity: 0;
-      cursor: pointer;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 18px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease;
-    }
-    .btn:hover { background: var(--primary-dark); }
-    .btn:active { transform: scale(0.98); }
-    .btn.secondary { background: #475569; }
-    .btn.secondary:hover { background: #334155; }
-    .btn:disabled { background: #94a3b8; cursor: not-allowed; }
-    .upload-status {
-      font-size: 14px;
-      color: var(--muted);
-      margin-top: 10px;
-      min-height: 20px;
-    }
-    .upload-status.error { color: var(--error); }
-    .upload-status.success { color: var(--success); }
-    .preview-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-      gap: 10px;
-      margin-top: 14px;
-    }
-    .preview-grid img {
-      width: 100%;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    /* Master cards */
-    .masters-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 16px;
-    }
-    .master-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      box-shadow: var(--shadow);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .master-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-    }
-    .master-head { display: flex; align-items: center; gap: 12px; }
-    .avatar {
-      width: 52px; height: 52px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--border);
-      flex-shrink: 0;
-    }
-    .master-name { font-weight: 700; font-size: 16px; }
-    .master-trade { color: var(--muted); font-size: 13px; }
-    .rating { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
-    .stars { color: var(--accent); letter-spacing: 1px; font-size: 15px; }
-    .rating-num { font-weight: 700; font-size: 15px; }
-    .reviews { color: var(--muted); font-size: 13px; }
-    .master-bio { margin-top: 10px; font-size: 14px; color: #334155; }
-    .master-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-    .tag {
-      background: #eef2ff;
-      color: var(--primary-dark);
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 999px;
-    }
-
-    footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      padding: 24px 20px 40px;
-    }
-
-    @media (max-width: 600px) {
-      #map { height: 320px; }
-      header h1 { font-size: 22px; }
-    }
-  </style>
-  <meta property="og:image" content="https://bolt.new/static/og_default.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ДЕЛА — Сервис бытовых услуг</title>
+    <!-- Подключаем автономное ядро базы данных -->
+    <script src="https://cloudflare.com"></script>
+    <!-- Подключаем официальные Яндекс Карты для геолокации заказов -->
+    <script src="https://yandex.ru" type="text/javascript"></script>
+    <style>
+        :root {
+            --bg-color: #17212b;
+            --text-color: #f5f6f7;
+            --button-color: #2481cc;
+            --card-bg: #202b36;
+            --accent-color: #4ee44e;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container { width: 100%; max-width: 450px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .role-selector { display: flex; background: var(--card-bg); border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+        .role-btn { flex: 1; background: none; border: none; color: var(--text-color); padding: 10px; font-size: 16px; cursor: pointer; border-radius: 6px; }
+        .role-btn.active { background: var(--button-color); font-weight: bold; }
+        .screen { display: none; background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 15px; }
+        .screen.active { display: block; }
+        h2 { margin-top: 0; font-size: 18px; margin-bottom: 15px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; color: #708499; }
+        input, select { width: 100%; padding: 12px; background: #17212b; border: 1px solid #2f3e4e; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 15px; }
+        input[type="file"] { display: none; }
+        .file-label { display: block; text-align: center; padding: 12px; background: #2b394a; border: 1px dashed #2481cc; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn-submit { width: 100%; background: var(--button-color); border: none; color: white; padding: 14px; font-size: 16px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .order-card { background: #17212b; border: 1px solid #2f3e4e; border-radius: 8px; padding: 15px; margin-bottom: 12px; }
+        .price { color: var(--accent-color); font-weight: bold; font-size: 16px; }
+        #map { width: 100%; height: 250px; border-radius: 8px; margin-bottom: 15px; background: #2b394a; }
+        .preview-img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; display: none; }
+        .card-img { width: 100%; max-height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; }
+        .rating { color: #ffb100; font-weight: bold; font-size: 13px; }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>Artel</h1>
-    <p>Найдите мастера рядом с вами</p>
-  </header>
 
-  <main>
-    <div class="section-title">Мастера на карте</div>
-    <div id="map"></div>
-    <div class="map-hint"><span class="dot"></span> Метки показывают примерное расположение мастеров</div>
-
-    <div class="section-title">Загрузить фото заказа</div>
-    <div class="upload-card">
-      <div class="upload-row">
-        <div class="file-input-wrap">
-          <button class="btn" type="button">Выбрать фото</button>
-          <input type="file" id="photoInput" accept="image/*" multiple />
-        </div>
-        <button class="btn secondary" id="uploadBtn" type="button" disabled>Загрузить</button>
-      </div>
-      <div class="upload-status" id="uploadStatus">Выберите одно или несколько изображений</div>
-      <div class="preview-grid" id="previewGrid"></div>
+<div class="container">
+    <div class="header">
+        <h1 style="margin:0 0 5px 0; font-size:28px; letter-spacing: 1px;">ДЕЛА</h1>
+        <p style="color: #708499; margin:0; font-size:14px;">Муж на час. Рукастые соседи рядом.</p>
     </div>
 
-    <div class="section-title">Рекомендуемые мастера</div>
-    <div class="masters-grid" id="mastersGrid"></div>
-  </main>
+    <div class="role-selector">
+        <button id="btn-client" class="role-btn active" onclick="switchRole('client')">Я Заказчик</button>
+        <button id="btn-master" class="role-btn" onclick="switchRole('master')">Я Мастер</button>
+    </div>
 
-  <footer>Artel · демонстрационная версия</footer>
-
-  <script>
-    // --- Supabase client (credentials provided by user) ---
-    const SUPABASE_URL = 'https://gurdileahikezaexfsgj.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_fxVtAH7P5qoI5oPcNHaWsA_eIHH6TDj';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const BUCKET = 'order-photos';
-
-    // --- Fake master data with ratings ---
-    const MASTERS = [
-      { name: 'Иван Петров', trade: 'Сантехник', rating: 4.8, reviews: 126, lat: 55.7558, lon: 37.6173,
-        bio: '10 лет опыта. Монтаж и ремонт труб, установка сантехники.', tags: ['Трубы', 'Краны', 'Унитазы'] },
-      { name: 'Анна Смирнова', trade: 'Электрик', rating: 4.9, reviews: 203, lat: 55.7620, lon: 37.6230,
-        bio: 'Лицензированный электрик. Проводка, щитки, розетки.', tags: ['Проводка', 'Щитки', 'Розетки'] },
-      { name: 'Сергей Иванов', trade: 'Плотник', rating: 4.6, reviews: 88, lat: 55.7480, lon: 37.6090,
-        bio: 'Мебель на заказ, ремонт деревянных конструкций.', tags: ['Мебель', 'Двери', 'Полы'] },
-      { name: 'Мария Кузнецова', trade: 'Маляр', rating: 4.7, reviews: 154, lat: 55.7510, lon: 37.6300,
-        bio: 'Покраска стен и потолков, декоративные покрытия.', tags: ['Покраска', 'Шпаклёвка'] },
-      { name: 'Дмитрий Соколов', trade: 'Кафельщик', rating: 4.5, reviews: 67, lat: 55.7400, lon: 37.6200,
-        bio: 'Укладка плитки в ванных и кухнях. Любая сложность.', tags: ['Плитка', 'Ванная'] },
-      { name: 'Ольга Новикова', trade: 'Уборщица', rating: 4.9, reviews: 311, lat: 55.7650, lon: 37.6150,
-        bio: 'Генеральная и поддерживающая уборка квартир и офисов.', tags: ['Уборка', 'Химчистка'] }
-    ];
-
-    // --- Star rendering helper ---
-    function stars(rating) {
-      const full = Math.floor(rating);
-      const half = rating - full >= 0.5;
-      return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - (half ? 1 : 0));
-    }
-
-    // --- Render master cards ---
-    function renderMasters() {
-      const grid = document.getElementById('mastersGrid');
-      grid.innerHTML = MASTERS.map(m => `
-        <div class="master-card">
-          <div class="master-head">
-            <img class="avatar" src="https://i.pravatar.cc/100?u=${encodeURIComponent(m.name)}" alt="${m.name}" />
-            <div>
-              <div class="master-name">${m.name}</div>
-              <div class="master-trade">${m.trade}</div>
-            </div>
-          </div>
-          <div class="rating">
-            <span class="stars">${stars(m.rating)}</span>
-            <span class="rating-num">${m.rating.toFixed(1)}</span>
-            <span class="reviews">(${m.reviews} отзывов)</span>
-          </div>
-          <div class="master-bio">${m.bio}</div>
-          <div class="master-tags">${m.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+    <!-- ЭКРАН ЗАКАЗЧИКА -->
+    <div id="client-screen" class="screen active">
+        <h2>Создать новую задачу</h2>
+        <div class="input-group">
+            <label>Что нужно сделать?</label>
+            <input type="text" id="task-title" placeholder="Например: Заменить сифон на кухне">
         </div>
-      `).join('');
+        <div class="input-group">
+            <label>Адрес (Город, улица, дом)</label>
+            <input type="text" id="task-address" placeholder="Иркутск, ул. Лесная, дом 5">
+        </div>
+        <div class="input-group">
+            <label>Предложите цену (₽)</label>
+            <input type="number" id="task-price" placeholder="500">
+        </div>
+        <div class="input-group">
+            <label>Фото поломки (не обязательно)</label>
+            <label for="task-file" class="file-label" id="file-label-text">📸 Прикрепить фото</label>
+            <input type="file" id="task-file" accept="image/*" onchange="previewFile()">
+            <img id="file-preview" class="preview-img" src="" alt="Превью">
+        </div>
+        <button class="btn-submit" id="btn-create" onclick="createOrder()">Разместить заказ</button>
+    </div>
+
+    <!-- ЭКРАН МАСТЕРА -->
+    <div id="master-screen" class="screen">
+        <h2>Карта задач в вашем районе</h2>
+        <!-- Живая интерактивная карта -->
+        <div id="map"></div>
+        
+        <h2>Список доступных дел</h2>
+        <div id="orders-list">
+            <p style="color: #708499; text-align:center;">Загрузка дел...</p>
+        </div>
+    </div>
+</div>
+
+<!-- МОНОЛИТНАЯ СБОРКА БИБЛИОТЕКИ SUPABASE -->
+<script>
+!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).supabase={})}(this,(function(e){"use strict";class t{constructor(e,t){this.url=e,this.headers=t}async request(e,t,r){const n=Object.assign(Object.assign({},this.headers),{"Content-Type":"application/json","Prefer":"return=representation"});let o=r instanceof FormData?r:r?JSON.stringify(r):null;if(r instanceof FormData){delete n["Content-Type"]}const s=await fetch(`${this.url}${e}`,{method:t,headers:n,body:o});if(!s.ok){const e=await s.json();throw new Error(e.message||s.statusText)}return s.status===204?null:s.json()}}class r{constructor(e,t){this.url=e,this.headers=t}from(e){return new n(this.url,this.headers,e)}get storage(){return{from:(e)=>({upload:async(t,r)=>{const n=new FormData;n.append("cacheControl","3600");n.append("",r);const o=new t(this.url.replace("/rest/v1","/storage/v1"),this.headers);return o.request(`/object/${e}/${t}`,"POST",n)}})}}}class n{constructor(e,t,r){this.url=e,this.headers=t,this.table=r,this.query={}}select(e="*"){return this.query.select=e,this}insert(e){return this.action="POST",this.body=e,this}order(e,t={ascending:!0}){return this.query.order=`${e}.${t.ascending?"asc":"desc"}`,this}async execute(){let e=`/${this.table}`;const r=new URLSearchParams(this.query).toString();r&&(e+=`?${r}`);const n=new t(this.url,this.headers);const o=await n.request(e,this.action||"GET",this.body);return{data:o,error:null}}}e.createClient=function(e,t){const n={"apikey":t,"Authorization":`Bearer ${t}`};return new r(`${e}/rest/v1`,n)},Object.defineProperty(e,"__esModule",{value:!0})}));
+</script>
+
+<script>
+    // ⚠️ ВСТАВЬ СВОИ КЛЮЧИ СЮДА:
+    const SUPABASE_URL = "СЮДА_ВСТАВЬ_PROJECT_URL";
+    const SUPABASE_KEY = "СЮДА_ВСТАВЬ_PUBLISHABLE_KEY";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let myMap = null;
+
+    function previewFile() {
+        const fileInput = document.getElementById('task-file');
+        const preview = document.getElementById('file-preview');
+        const label = document.getElementById('file-label-text');
+        
+        if (fileInput.files.length > 0) {
+            preview.src = URL.createObjectURL(fileInput.files[0]);
+            preview.style.display = 'block';
+            label.innerText = "✅ Фото выбрано";
+        }
     }
 
-    // --- Yandex Maps init ---
-    ymaps.ready(() => {
-      const map = new ymaps.Map('map', {
-        center: [55.7558, 37.6173],
-        zoom: 11,
-        controls: ['zoomControl', 'fullscreenControl']
-      });
+    function switchRole(role) {
+        const btnClient = document.getElementById('btn-client');
+        const btnMaster = document.getElementById('btn-master');
+        const clientScreen = document.getElementById('client-screen');
+        const masterScreen = document.getElementById('master-screen');
+        
+        if(role === 'client') {
+            btnClient.classList.add('active');
+            btnMaster.classList.remove('active');
+            clientScreen.classList.add('active');
+            masterScreen.classList.remove('active');
+        } else {
+            btnClient.classList.remove('active');
+            btnMaster.classList.add('active');
+            masterScreen.classList.add('active');
+            clientScreen.classList.remove('active');
+            
+            if (!myMap) {
+                ymaps.ready(initMap);
+            } else {
+                loadOrders();
+            }
+        }
+    }
 
-      MASTERS.forEach(m => {
-        const placemark = new ymaps.Placemark([m.lat, m.lon], {
-          balloonContentHeader: m.name,
-          balloonContentBody: `${m.trade} — рейтинг ${m.rating.toFixed(1)} ★ (${m.reviews} отзывов)`,
-          balloonContentFooter: m.bio
-        }, {
-          preset: 'islands#blueCircleDotIcon',
-          balloonMaxWidth: 260
+    function initMap() {
+        myMap = new ymaps.Map("map", {
+            center: [52.287, 104.281], 
+            zoom: 11,
+            controls: ['zoomControl']
         });
-        map.geoObjects.add(placemark);
-      });
-    });
+        loadOrders();
+    }
 
-    // --- Photo upload ---
-    const photoInput = document.getElementById('photoInput');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const uploadStatus = document.getElementById('uploadStatus');
-    const previewGrid = document.getElementById('previewGrid');
-    let selectedFiles = [];
+    async function createOrder() {
+        const title = document.getElementById('task-title').value;
+        const price = parseInt(document.getElementById('task-price').value);
+        const address = document.getElementById('task-address').value;
+        const fileInput = document.getElementById('task-file');
+        const btn = document.getElementById('btn-create');
+        
+        if(!title || !price || !address) {
+            alert('Пожалуйста, заполни все поля!');
+            return;
+        }
 
-    photoInput.addEventListener('change', () => {
-      selectedFiles = Array.from(photoInput.files);
-      previewGrid.innerHTML = '';
-      selectedFiles.forEach(f => {
-        const url = URL.createObjectURL(f);
-        const img = document.createElement('img');
-        img.src = url;
-        previewGrid.appendChild(img);
-      });
-      if (selectedFiles.length === 0) {
-        uploadBtn.disabled = true;
-        uploadStatus.textContent = 'Выберите одно или несколько изображений';
-        uploadStatus.className = 'upload-status';
-      } else {
-        uploadBtn.disabled = false;
-        uploadStatus.textContent = `Выбрано файлов: ${selectedFiles.length}`;
-        uploadStatus.className = 'upload-status';
-      }
-    });
+        btn.innerText = "Публикация дела...";
+        btn.disabled = !0;
 
-    uploadBtn.addEventListener('click', async () => {
-      if (selectedFiles.length === 0) return;
-      uploadBtn.disabled = true;
-      uploadStatus.textContent = 'Загрузка...';
-      uploadStatus.className = 'upload-status';
+        let imageUrl = null;
 
-      const uploaded = [];
-      let failed = 0;
-      for (const file of selectedFiles) {
-        const ext = file.name.split('.').pop();
-        const path = `orders/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false });
-        if (error) { failed++; }
-        else { uploaded.push(path); }
-      }
-
-      if (uploaded.length > 0 && failed === 0) {
-        uploadStatus.textContent = `Загружено: ${uploaded.length} фото`;
-        uploadStatus.className = 'upload-status success';
-        previewGrid.innerHTML = '';
-        selectedFiles = [];
-        photoInput.value = '';
-        uploadBtn.disabled = true;
-      } else if (failed > 0 && uploaded.length > 0) {
-        uploadStatus.textContent = `Загружено ${uploaded.length}, не удалось ${failed}`;
-        uploadStatus.className = 'upload-status error';
-      } else {
-        uploadStatus.textContent = 'Не удалось загрузить фото. Попробуйте ещё раз.';
-        uploadStatus.className = 'upload-status error';
-        uploadBtn.disabled = false;
-      }
-    });
-
-    renderMasters();
-  </script>
-</body>
-</html>
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const fileName = `${Date.now()}_${file.name}`;
+            try {
+                await supabaseClient.storage.from('order-photos').upload(fileName, file);
+                imageUrl = `${SUPABASE_URL}/storage/v1/object/public/order-photos/${fileName}`;
+            } catch (err) {
+                console.error("Ошибка загрузки фото:", err);
+            }
+        }
+ymaps.geocode(address, { results: 1 }).then(async function (res) {
+const firstGeoObject = res.geoObjects.get(0);
+let coords = [52.287, 104.281];
+if (firstGeoObject) {
+coords = firstGeoObject.geometry.getCoordinates();
+}
+const { error } = await supabaseClient
+.from('orders')
+.insert([{
+title: title,
+price: price,
+address: address,
+image_url: imageUrl,
+latitude: coords[0],
+longitude: coords[1]
+}])
+.execute();
+btn.innerText = "Разместить заказ";
+btn.disabled = !1;
+if (error) {
+alert('Ошибка базы данных: ' + error.message);
+} else {
+alert('ДЕЛО успешно создано и добавлено на карту района!');
+location.reload();
+}
+});
+}
+async function loadOrders() {
+const ordersList = document.getElementById('orders-list');
+const { data: orders, error } = await supabaseClient
+.from('orders')
+.select('*')
+.execute();
+if (error) {
+ordersList.innerHTML = <p style="color:red;">Ошибка загрузки: ${error.message}</p>;
+return;
+}
+if(!orders || orders.length === 0) {
+ordersList.innerHTML = <p style="color:#708499; text-align:center;">Заказов пока нет.</p>;
+return;
+}
+if (myMap) myMap.geoObjects.removeAll();
+ordersList.innerHTML = '';
+orders.sort((a, b) => b.id - a.id);
+orders.forEach(order => {
+if (order.latitude && order.longitude && myMap) {
+const myPlacemark = new ymaps.Placemark([order.latitude, order.longitude], {
+balloonContent: <strong>${order.title}</strong><br>${order.price} ₽<br>${order.address}
+}, {
+preset: 'islands#blueHomeIcon'
+});
+myMap.geoObjects.add(myPlacemark);
+}
+let imgHtml = order.image_url ? <img src="${order.image_url}" class="card-img" alt="фото"> : '';
+let fakeRating = (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1);
+let fakeReviews = Math.floor(Math.random() * 30) + 5;
+ordersList.innerHTML += <div class="order-card"> ${imgHtml} <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"> <strong>${order.title}</strong> <span class="price">${order.price} ₽</span> </div> <p style="margin: 0 0 8px 0; font-size: 14px; color: #a2b4c7;">${order.address}</p> <div style="display:flex; justify-content:space-between; align-items:center;"> <span class="rating">⭐ ${fakeRating} <span style="color:#708499; font-weight:normal;">(${fakeReviews} отзывов)</span></span> <button class="btn-submit" style="padding: 6px 12px; font-size: 13px; margin: 0; width:auto;" onclick="alert('Контакты соседа откроются после подключения модуля СМС-авторизации')">Взять</button> </div> </div>;
+});
+}
