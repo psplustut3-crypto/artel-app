@@ -86,7 +86,7 @@
     const SUPABASE_KEY = "sb_publishable_fxVtAH7P5qoI5oPcNHaWsA_eIHH6TDj";
 
     // Инициализация БЕЗ нижнего подчеркивания
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function switchRole(role) {
         const btnClient = document.getElementById('btn-client');
@@ -118,7 +118,7 @@
             return;
         }
         
-        const { data, error } = await supabaseClient
+        const { data, error } = await db
             .from('orders')
             .insert([{ title: title, price: price, address: address }]);
             
@@ -135,7 +135,7 @@
     async function loadOrders() {
         const ordersList = document.getElementById('orders-list');
         
-        const { data: orders, error } = await supabaseClient
+        const { data: orders, error } = await db
             .from('orders')
             .select('*')
             .order('id', { ascending: false });
