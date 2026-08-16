@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ДЕЛА — Сервис бытовых услуг</title>
-    <!-- Подключаем автономное ядро базы данных -->
+    <!-- Подключаем базу через стабильный Cloudflare -->
     <script src="https://cloudflare.com"></script>
-    <!-- Подключаем официальные Яндекс Карты для геолокации заказов -->
+    <!-- Подключаем официальные Яндекс Карты -->
     <script src="https://yandex.ru" type="text/javascript"></script>
     <style>
         :root {
@@ -36,7 +36,7 @@
         h2 { margin-top: 0; font-size: 18px; margin-bottom: 15px; }
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-size: 14px; color: #708499; }
-        input, select { width: 100%; padding: 12px; background: #17212b; border: 1px solid #2f3e4e; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 15px; }
+        input { width: 100%; padding: 12px; background: #17212b; border: 1px solid #2f3e4e; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 15px; }
         input[type="file"] { display: none; }
         .file-label { display: block; text-align: center; padding: 12px; background: #2b394a; border: 1px dashed #2481cc; border-radius: 6px; cursor: pointer; font-size: 14px; }
         .btn-submit { width: 100%; background: var(--button-color); border: none; color: white; padding: 14px; font-size: 16px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
@@ -49,7 +49,6 @@
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="header">
         <h1 style="margin:0 0 5px 0; font-size:28px; letter-spacing: 1px;">ДЕЛА</h1>
@@ -88,34 +87,25 @@
     <!-- ЭКРАН МАСТЕРА -->
     <div id="master-screen" class="screen">
         <h2>Карта задач в вашем районе</h2>
-        <!-- Живая интерактивная карта -->
         <div id="map"></div>
-        
         <h2>Список доступных дел</h2>
         <div id="orders-list">
             <p style="color: #708499; text-align:center;">Загрузка дел...</p>
         </div>
     </div>
 </div>
-
-<!-- МОНОЛИТНАЯ СБОРКА БИБЛИОТЕКИ SUPABASE -->
 <script>
-!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).supabase={})}(this,(function(e){"use strict";class t{constructor(e,t){this.url=e,this.headers=t}async request(e,t,r){const n=Object.assign(Object.assign({},this.headers),{"Content-Type":"application/json","Prefer":"return=representation"});let o=r instanceof FormData?r:r?JSON.stringify(r):null;if(r instanceof FormData){delete n["Content-Type"]}const s=await fetch(`${this.url}${e}`,{method:t,headers:n,body:o});if(!s.ok){const e=await s.json();throw new Error(e.message||s.statusText)}return s.status===204?null:s.json()}}class r{constructor(e,t){this.url=e,this.headers=t}from(e){return new n(this.url,this.headers,e)}get storage(){return{from:(e)=>({upload:async(t,r)=>{const n=new FormData;n.append("cacheControl","3600");n.append("",r);const o=new t(this.url.replace("/rest/v1","/storage/v1"),this.headers);return o.request(`/object/${e}/${t}`,"POST",n)}})}}}class n{constructor(e,t,r){this.url=e,this.headers=t,this.table=r,this.query={}}select(e="*"){return this.query.select=e,this}insert(e){return this.action="POST",this.body=e,this}order(e,t={ascending:!0}){return this.query.order=`${e}.${t.ascending?"asc":"desc"}`,this}async execute(){let e=`/${this.table}`;const r=new URLSearchParams(this.query).toString();r&&(e+=`?${r}`);const n=new t(this.url,this.headers);const o=await n.request(e,this.action||"GET",this.body);return{data:o,error:null}}}e.createClient=function(e,t){const n={"apikey":t,"Authorization":`Bearer ${t}`};return new r(`${e}/rest/v1`,n)},Object.defineProperty(e,"__esModule",{value:!0})}));
-</script>
+    // ⚠️ ВСТАВЬ СВОИ КЛЮЧИ СЮДА МЕЖДУ КАВЫЧКАМИ:
+    const SUPABASE_URL = "https://gurdileahikezaexfsgj.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_fxVtAH7P5qoI5oPcNHaWsA_eIHH6TDj";
 
-<script>
-    // ⚠️ ВСТАВЬ СВОИ КЛЮЧИ СЮДА:
-    const SUPABASE_URL = "СЮДА_ВСТАВЬ_PROJECT_URL";
-    const SUPABASE_KEY = "СЮДА_ВСТАВЬ_PUBLISHABLE_KEY";
-
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let myMap = null;
 
     function previewFile() {
         const fileInput = document.getElementById('task-file');
         const preview = document.getElementById('file-preview');
         const label = document.getElementById('file-label-text');
-        
         if (fileInput.files.length > 0) {
             preview.src = URL.createObjectURL(fileInput.files[0]);
             preview.style.display = 'block';
@@ -139,21 +129,12 @@
             btnMaster.classList.add('active');
             masterScreen.classList.add('active');
             clientScreen.classList.remove('active');
-            
-            if (!myMap) {
-                ymaps.ready(initMap);
-            } else {
-                loadOrders();
-            }
+            if (!myMap) { ymaps.ready(initMap); } else { loadOrders(); }
         }
     }
 
     function initMap() {
-        myMap = new ymaps.Map("map", {
-            center: [52.287, 104.281], 
-            zoom: 11,
-            controls: ['zoomControl']
-        });
+        myMap = new ymaps.Map("map", { center: [52.287, 104.281], zoom: 11, controls: ['zoomControl'] });
         loadOrders();
     }
 
@@ -164,82 +145,64 @@
         const fileInput = document.getElementById('task-file');
         const btn = document.getElementById('btn-create');
         
-        if(!title || !price || !address) {
-            alert('Пожалуйста, заполни все поля!');
-            return;
-        }
-
+        if(!title || !price || !address) { alert('Пожалуйста, заполни все поля!'); return; }
         btn.innerText = "Публикация дела...";
-        btn.disabled = !0;
+        btn.disabled = true;
 
         let imageUrl = null;
-
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const fileName = `${Date.now()}_${file.name}`;
             try {
-                await supabaseClient.storage.from('order-photos').upload(fileName, file);
+                await fetch(`${SUPABASE_URL}/storage/v1/object/order-photos/${fileName}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY },
+                    body: file
+                });
                 imageUrl = `${SUPABASE_URL}/storage/v1/object/public/order-photos/${fileName}`;
-            } catch (err) {
-                console.error("Ошибка загрузки фото:", err);
-            }
+            } catch (err) { console.error(err); }
         }
-ymaps.geocode(address, { results: 1 }).then(async function (res) {
-const firstGeoObject = res.geoObjects.get(0);
-let coords = [52.287, 104.281];
-if (firstGeoObject) {
-coords = firstGeoObject.geometry.getCoordinates();
-}
-const { error } = await supabaseClient
-.from('orders')
-.insert([{
-title: title,
-price: price,
-address: address,
-image_url: imageUrl,
-latitude: coords[0],
-longitude: coords[1]
-}])
-.execute();
-btn.innerText = "Разместить заказ";
-btn.disabled = !1;
-if (error) {
-alert('Ошибка базы данных: ' + error.message);
-} else {
-alert('ДЕЛО успешно создано и добавлено на карту района!');
-location.reload();
-}
-});
-}
-async function loadOrders() {
-const ordersList = document.getElementById('orders-list');
-const { data: orders, error } = await supabaseClient
-.from('orders')
-.select('*')
-.execute();
-if (error) {
-ordersList.innerHTML = <p style="color:red;">Ошибка загрузки: ${error.message}</p>;
-return;
-}
-if(!orders || orders.length === 0) {
-ordersList.innerHTML = <p style="color:#708499; text-align:center;">Заказов пока нет.</p>;
-return;
-}
-if (myMap) myMap.geoObjects.removeAll();
-ordersList.innerHTML = '';
-orders.sort((a, b) => b.id - a.id);
-orders.forEach(order => {
-if (order.latitude && order.longitude && myMap) {
-const myPlacemark = new ymaps.Placemark([order.latitude, order.longitude], {
-balloonContent: <strong>${order.title}</strong><br>${order.price} ₽<br>${order.address}
-}, {
-preset: 'islands#blueHomeIcon'
-});
-myMap.geoObjects.add(myPlacemark);
-}
-let imgHtml = order.image_url ? <img src="${order.image_url}" class="card-img" alt="фото"> : '';
-let fakeRating = (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1);
-let fakeReviews = Math.floor(Math.random() * 30) + 5;
-ordersList.innerHTML += <div class="order-card"> ${imgHtml} <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"> <strong>${order.title}</strong> <span class="price">${order.price} ₽</span> </div> <p style="margin: 0 0 8px 0; font-size: 14px; color: #a2b4c7;">${order.address}</p> <div style="display:flex; justify-content:space-between; align-items:center;"> <span class="rating">⭐ ${fakeRating} <span style="color:#708499; font-weight:normal;">(${fakeReviews} отзывов)</span></span> <button class="btn-submit" style="padding: 6px 12px; font-size: 13px; margin: 0; width:auto;" onclick="alert('Контакты соседа откроются после подключения модуля СМС-авторизации')">Взять</button> </div> </div>;
-});
-}
+
+        ymaps.geocode(address, { results: 1 }).then(async function (res) {
+            const firstGeoObject = res.geoObjects.get(0);
+            let coords = [52.287, 104.281];
+            if (firstGeoObject) { coords = firstGeoObject.geometry.getCoordinates(); }
+
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY },
+                body: JSON.stringify({ title: title, price: price, address: address, image_url: imageUrl, latitude: coords[0], longitude: coords[1] })
+            });
+                
+            btn.innerText = "Разместить заказ";
+            btn.disabled = false;
+            if (!response.ok) { alert('Ошибка базы данных'); } else { alert('ДЕЛО успешно создано!'); location.reload(); }
+        });
+    }
+
+    async function loadOrders() {
+        const ordersList = document.getElementById('orders-list');
+        try {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/orders?order=id.desc`, {
+                headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY }
+            });
+            const orders = await response.json();
+            if(!orders || orders.length === 0) { ordersList.innerHTML = `<p style="color:#708499; text-align:center;">Заказов пока нет.</p>`; return; }
+            if (myMap) myMap.geoObjects.removeAll();
+            ordersList.innerHTML = '';
+            
+            orders.forEach(order => {
+                if (order.latitude && order.longitude && myMap) {
+                    const myPlacemark = new ymaps.Placemark([order.latitude, order.longitude], { balloonContent: `<strong>${order.title}</strong><br>${order.price} ₽` }, { preset: 'islands#blueHomeIcon' });
+                    myMap.geoObjects.add(myPlacemark);
+                }
+                let imgHtml = order.image_url ? `<img src="${order.image_url}" class="card-img">` : '';
+                let fakeRating = (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1);
+                let fakeReviews = Math.floor(Math.random() * 30) + 5;
+                ordersList.innerHTML += `<div class="order-card">${imgHtml}<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>${order.title}</strong><span class="price">${order.price} ₽</span></div><p style="margin:0 0 8px 0; font-size:14px; color:#a2b4c7;">${order.address}</p><div style="display:flex; justify-content:space-between; align-items:center;"><span class="rating">⭐ ${fakeRating} <span style="color:#708499; font-weight:normal;">(${fakeReviews})</span></span><button class="btn-submit" style="padding:6px 12px; font-size:13px; margin:0; width:auto;" onclick="alert('Контакты откроются после СМС-авторизации')">Взять</button></div></div>`;
+            });
+        } catch (err) { ordersList.innerHTML = `<p style="color:red;">Ошибка загрузки</p>`; }
+    }
+</script>
+</body>
+</html>
