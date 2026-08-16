@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сервис Взаимопомощи</title>
     <!-- Подключаем официальную библиотеку Supabase, чтобы код умел общаться с базой -->
-    <script src="https://jsdelivr.net"></script>
+    <script src="https://cloudflare.com"></script>
     <style>
         :root {
             --bg-color: #17212b;
@@ -86,7 +86,7 @@
     const SUPABASE_KEY = "sb_publishable_fxVtAH7P5qoI5oPcNHaWsA_eIHH6TDj";
 
     // Инициализируем подключение к твоей базе данных
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function switchRole(role) {
         const btnClient = document.getElementById('btn-client');
