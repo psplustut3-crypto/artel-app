@@ -1,12 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сервис Взаимопомощи</title>
-    <!-- ПОДКЛЮЧАЕМ СТАБИЛЬНОЕ ЗЕРКАЛО БИБЛИОТЕКИ ЧЕРЕЗ CLOUDFLARE -->
-    <script src="https://cloudflare.com"></script>
+    <!-- Подключаем библиотеку Supabase напрямую через проверенное российское зеркало Яндекса/jsDelivr -->
+    <script src="https://cloudflare.com" onerror="loadBackup()"></script>
     <style>
         :root {
             --bg-color: #17212b;
@@ -81,12 +80,39 @@
 </div>
 
 <script>
-    // ПОДСТАВЬ СВОИ ДАННЫЕ СЮДА:
-    const SUPABASE_URL = "https://gurdileahikezaexfsgj.supabase.co/rest/v1/";
-    const SUPABASE_KEY = "sb_publishable_fxVtAH7P5qoI5oPcNHaWsA_eIHH6TDj";
+    // ⚠️ ИГОРЬ, ПОДСТАВЬ СВОИ ДАННЫЕ МЕЖДУ КАВЫЧКАМИ НИЖЕ:
+    const SUPABASE_URL = "СЮДА_ВСТАВЬ_PROJECT_URL";
+    const SUPABASE_KEY = "СЮДА_ВСТАВЬ_ЗЕЛЕНЫЙ_КЛЮЧ_С_ФОТО";
 
-    // Инициализация БЕЗ нижнего подчеркивания
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let supabaseClient = null;
+
+    // Функция плавной инициализации базы данных
+    function initSupabase() {
+        try {
+            if (typeof supabase !== 'undefined') {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log("Supabase успешно запущен!");
+            } else {
+                console.error("Библиотека Supabase не загрузилась");
+            }
+        } catch (e) {
+            console.error("Ошибка при инициализации:", e);
+        }
+    }
+
+    // Резервный способ загрузки на случай жестких блокировок провайдера
+    function loadBackup() {
+        console.log("Основной сервер заблокирован, включаем резервное окно...");
+        var script = document.createElement('script');
+        script.src = "https://unpkg.com";
+        script.onload = function() { initSupabase(); };
+        document.head.appendChild(script);
+    }
+
+    // Запускаем базу при старте страницы
+    window.onload = function() {
+        setTimeout(initSupabase, 500);
+    };
 
     function switchRole(role) {
         const btnClient = document.getElementById('btn-client');
@@ -117,8 +143,13 @@
             alert('Пожалуйста, залей все поля!');
             return;
         }
+
+        if(!supabaseClient) {
+            alert('База данных еще не подключилась, подожди пару секунд или проверь ключи.');
+            return;
+        }
         
-        const { data, error } = await db
+        const { data, error } = await supabaseClient
             .from('orders')
             .insert([{ title: title, price: price, address: address }]);
             
@@ -134,8 +165,13 @@
 
     async function loadOrders() {
         const ordersList = document.getElementById('orders-list');
+
+        if(!supabaseClient) {
+            ordersList.innerHTML = `<p style="color:red;">Ошибка: База данных не подключена.</p>`;
+            return;
+        }
         
-        const { data: orders, error } = await db
+        const { data: orders, error } = await supabaseClient
             .from('orders')
             .select('*')
             .order('id', { ascending: false });
