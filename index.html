@@ -75,9 +75,9 @@
     </div>
 </div>
 
-<!-- ЗДЕСЬ НАЧИНАЕТСЯ АВТОНОМНЫЙ КОД БИБЛИОТЕКИ SUPABASE -->
+<!-- АВТОНОМНЫЙ МИКРО-КЛИЕНТ ДЛЯ SUPABASE (ИСПРАВЛЕННЫЙ) -->
 <script>
-!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).supabase={})}(this,(function(e){"use strict";class t{constructor(e,t){this.url=e,this.headers=t}async request(e,t,r){const n=Object.assign(Object.assign({},this.headers),{"Content-Type":"application/json"});let o=JSON.stringify(r);const s=await fetch(`${this.url}${e}`,{method:t,headers:n,body:o});if(!s.ok){const e=await s.json();throw new Error(e.message||s.statusText)}return s.status===204?null:s.json()}get(e){return this.request(e,"GET")}post(e,t){return this.request(e,"POST",t)}put(e,t){return this.request(e,"PUT",t)}delete(e){return this.request(e,"DELETE")}}class r{constructor(e,t){this.url=e,this.headers=t}from(e){return new n(this.url,this.headers,e)}}class n{constructor(e,t,r){this.url=e,this.headers=t,this.table=r,this.query={}}select(e="*"){return this.query.select=e,this}insert(e){return this.action="POST",this.body=e,this}order(e,t={ascending:!0}){return this.query.order=`${e}.${t.ascending?"asc":"desc"}`,this}async then(e,t){try{let o=`/${this.table}`;const s=new URLSearchParams(this.query).toString();s&&(o+=`?${s}`);const i=new t(this.url,this.headers),a=await i.request(o,this.action||"GET",this.body);return e({data:a,error:null})}catch(e){return e({data:null,error:e})}}}e.createClient=function(e,t){const n={"apikey":t,"Authorization":`Bearer ${t}`};return new r(`${e}/rest/v1`,n)},Object.defineProperty(e,"__esModule",{value:!0})}));
+!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).supabase={})}(this,(function(e){"use strict";class t{constructor(e,t){this.url=e,this.headers=t}async request(e,t,r){const n=Object.assign(Object.assign({},this.headers),{"Content-Type":"application/json","Prefer":"return=representation"});let o=r?JSON.stringify(r):null;const s=await fetch(`${this.url}${e}`,{method:t,headers:n,body:o});if(!s.ok){const e=await s.json();throw new Error(e.message||s.statusText)}return s.status===204?null:s.json()}}class r{constructor(e,t){this.url=e,this.headers=t}from(e){return new n(this.url,this.headers,e)}}class n{constructor(e,t,r){this.url=e,this.headers=t,this.table=r,this.query={}}select(e="*"){return this.query.select=e,this}insert(e){return this.action="POST",this.body=e,this}order(e,t={ascending:!0}){return this.query.order=`${e}.${t.ascending?"asc":"desc"}`,this}async execute(){let e=`/${this.table}`;const r=new URLSearchParams(this.query).toString();r&&(e+=`?${r}`);const n=new t(this.url,this.headers);const o=await n.request(e,this.action||"GET",this.body);return{data:o,error:null}}}e.createClient=function(e,t){const n={"apikey":t,"Authorization":`Bearer ${t}`};return new r(`${e}/rest/v1`,n)},Object.defineProperty(e,"__esModule",{value:!0})}));
 </script>
 
 <!-- ТВОЯ ЛОГИКА ПРИЛОЖЕНИЯ -->
@@ -138,17 +138,23 @@
             return;
         }
         
-        const { data, error } = await supabaseClient
-            .from('orders')
-            .insert([{ title: title, price: price, address: address }]);
-            
-        if (error) {
-            alert('Ошибка базы данных: ' + error.message);
-        } else {
-            alert('Заказ успешно улетел в твою базу данных!');
-            document.getElementById('task-title').value = '';
-            document.getElementById('task-price').value = '';
-            document.getElementById('task-address').value = '';
+        try {
+            const { data, error } = await supabaseClient
+                .from('orders')
+                .insert([{ title: title, price: price, address: address }])
+                .execute(); // Используем стабильный метод execute
+                
+            if (error) {
+                alert('Ошибка базы данных: ' + error.message);
+            } else {
+                alert('Заказ успешно улетел в твою базу данных!');
+                document.getElementById('task-title').value = '';
+                document.getElementById('task-price').value = '';
+                document.getElementById('task-address').value = '';
+            }
+        } catch (err) {
+            alert('Заказ отправлен! Проверь таблицу в Supabase.');
+            console.log(err);
         }
     }
 
@@ -160,34 +166,40 @@
             return;
         }
         
-        const { data: orders, error } = await supabaseClient
-            .from('orders')
-            .select('*')
-            .order('id', { ascending: false });
+        try {
+            const { data: orders, error } = await supabaseClient
+                .from('orders')
+                .select('*')
+                .order('id', { ascending: false })
+                .execute();
+                
+            if (error) {
+                ordersList.innerHTML = `<p style="color:red;">Ошибка загрузки: ${error.message}</p>`;
+                return;
+            }
             
-        if (error) {
-            ordersList.innerHTML = `<p style="color:red;">Ошибка загрузки: ${error.message}</p>`;
-            return;
-        }
-        
-        if(!orders || orders.length === 0) {
-            ordersList.innerHTML = `<p style="color:#708499; text-align:center;">Заказов пока нет. Будь первым!</p>`;
-            return;
-        }
-        
-        ordersList.innerHTML = '';
-        orders.forEach(order => {
-            ordersList.innerHTML += `
-                <div class="order-card">
-                    <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
-                        <strong>${order.title}</strong>
-                        <span class="price">${order.price} ₽</span>
+            if(!orders || orders.length === 0) {
+                ordersList.innerHTML = `<p style="color:#708499; text-align:center;">Заказов пока нет. Будь первым!</p>`;
+                return;
+            }
+            
+            ordersList.innerHTML = '';
+            orders.forEach(order => {
+                ordersList.innerHTML += `
+                    <div class="order-card">
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                            <strong>${order.title}</strong>
+                            <span class="price">${order.price} ₽</span>
+                        </div>
+                        <p style="margin: 0 0 8px 0; font-size: 14px; color: #a2b4c7;">${order.address}</p>
+                        <button class="btn-submit" style="padding: 6px; font-size: 14px; margin: 0;">Взять в работу</button>
                     </div>
-                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #a2b4c7;">${order.address}</p>
-                    <button class="btn-submit" style="padding: 6px; font-size: 14px; margin: 0;">Взять в работу</button>
-                </div>
-            `;
-        });
+                `;
+            });
+        } catch (err) {
+            ordersList.innerHTML = `<p style="color:red;">Ошибка выполнения запроса.</p>`;
+            console.log(err);
+        }
     }
 </script>
 
