@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сервис Взаимопомощи</title>
-    <!-- Подключаем официальную библиотеку Supabase, чтобы код умел общаться с базой -->
+    <!-- ПОДКЛЮЧАЕМ СТАБИЛЬНОЕ ЗЕРКАЛО БИБЛИОТЕКИ ЧЕРЕЗ CLOUDFLARE -->
     <script src="https://cloudflare.com"></script>
     <style>
         :root {
@@ -81,12 +81,12 @@
 </div>
 
 <script>
-    // ⚠️ ВНИМАНИЕ! ПОДСТАВЬ СВОИ ДАННЫЕ МЕЖДУ КАВЫЧКАМИ НИЖЕ:
+    // ПОДСТАВЬ СВОИ ДАННЫЕ СЮДА:
     const SUPABASE_URL = "https://gurdileahikezaexfsgj.supabase.co/rest/v1/";
     const SUPABASE_KEY = "sb_publishable_fxVtAH7P5qoI5oPcNHaWsA_eIHH6TDj";
 
-    // Инициализируем подключение к твоей базе данных
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Инициализация БЕЗ нижнего подчеркивания
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function switchRole(role) {
         const btnClient = document.getElementById('btn-client');
@@ -104,11 +104,10 @@
             btnMaster.classList.add('active');
             masterScreen.classList.add('active');
             clientScreen.classList.remove('active');
-            loadOrders(); // При переключении на мастера — сразу качаем актуальные заказы из базы
+            loadOrders(); 
         }
     }
 
-    // Функция отправки заказа в твою базу данных Supabase
     async function createOrder() {
         const title = document.getElementById('task-title').value;
         const price = parseInt(document.getElementById('task-price').value);
@@ -119,31 +118,27 @@
             return;
         }
         
-        // Отправляем строку в таблицу orders, которую ты создал на Шаге 2
-        const { data, error } = await _supabase
+        const { data, error } = await supabaseClient
             .from('orders')
             .insert([{ title: title, price: price, address: address }]);
             
         if (error) {
             alert('Ошибка базы данных: ' + error.message);
-            console.error(error);
         } else {
             alert('Заказ успешно улетел в твою базу данных!');
-            // Очищаем форму
             document.getElementById('task-title').value = '';
             document.getElementById('task-price').value = '';
             document.getElementById('task-address').value = '';
         }
     }
 
-    // Функция выкачивания заказов из базы для экрана Мастера
     async function loadOrders() {
         const ordersList = document.getElementById('orders-list');
         
-        const { data: orders, error } = await _supabase
+        const { data: orders, error } = await supabaseClient
             .from('orders')
             .select('*')
-            .order('id', { ascending: false }); // Самые свежие — вверху
+            .order('id', { ascending: false });
             
         if (error) {
             ordersList.innerHTML = `<p style="color:red;">Ошибка загрузки: ${error.message}</p>`;
@@ -164,7 +159,7 @@
                         <span class="price">${order.price} ₽</span>
                     </div>
                     <p style="margin: 0 0 8px 0; font-size: 14px; color: #a2b4c7;">${order.address}</p>
-                    <button class="btn-submit" style="padding: 6px; font-size: 14px; margin: 0;" onclick="alert('В MVP версии контакты откроются после подключения авторизации')">Взять в работу</button>
+                    <button class="btn-submit" style="padding: 6px; font-size: 14px; margin: 0;">Взять в работу</button>
                 </div>
             `;
         });
