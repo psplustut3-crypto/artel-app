@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сервис Взаимопомощи</title>
+    <style>
+        :root {
+            --bg-color: #17212b;
+            --text-color: #f5f6f7;
+            --button-color: #2481cc;
+            --card-bg: #202b36;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .role-selector {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        .role-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: 0.3s;
+        }
+        .role-btn.active {
+            background: var(--button-color);
+            font-weight: bold;
+        }
+        .screen {
+            display: none;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .screen.active {
+            display: block;
+        }
+        h2 { margin-top: 0; font-size: 20px; }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #708499;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            background: #17212b;
+            border: 1px solid #2f3e4e;
+            border-radius: 6px;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        .btn-submit {
+            width: 100%;
+            background: var(--button-color);
+            border: none;
+            color: white;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .order-card {
+            background: #17212b;
+            border: 1px solid #2f3e4e;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .price { color: #4ee44e; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1 id="app-title">Проект "Артель"</h1>
+        <p style="color: #708499;">Умный шеринг бытовых навыков</p>
+    </div>
+
+    <!-- Тот самый тумблер двойного входа, о котором ты говорил -->
+    <div class="role-selector">
+        <button class="role-btn active" onclick="switchRole('client')">Я Заказчик</button>
+        <button class="role-btn" onclick="switchRole('master')">Я Мастер</button>
+    </div>
+
+    <!-- ЭКРАН ЗАКАЗЧИКА -->
+    <div id="client-screen" class="screen active">
+        <h2>Создать новую задачу</h2>
+        <div class="input-group">
+            <label>Что нужно сделать?</label>
+            <input type="text" id="task-title" placeholder="Например: Заменить сифон на кухне">
+        </div>
+        <div class="input-group">
+            <label>Адрес (или номер дома для соседей)</label>
+            <input type="text" id="task-address" placeholder="ул. Лесная, дом 5">
+        </div>
+        <div class="input-group">
+            <label>Предложите цену (руб.)</label>
+            <input type="number" id="task-price" placeholder="500">
+            <small style="color: #708499; display:block; margin-top:4px;">Можно указать свою, сосед поможет по-соседски</small>
+        </div>
+        <button class="btn-submit" onclick="createOrder()">Разместить заказ</button>
+    </div>
+
+    <!-- ЭКРАН МАСТЕРА -->
+    <div id="master-screen" class="screen">
+        <h2>Лента заказов в вашем районе</h2>
+        <div id="orders-list">
+            <!-- Сюда ИИ будет подгружать заказы из базы данных -->
+            <div class="order-card">
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                    <strong>Починить розетку</strong>
+                    <span class="price">300 ₽</span>
+                </div>
+                <p style="margin: 0 0 8px 0; font-size: 14px; color: #a2b4c7;">ул. Лесная, дом 12 (300 метров от вас)</p>
+                <button class="btn-submit" style="padding: 6px; font-size: 14px; margin: 0;">Взять в работу</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchRole(role) {
+        const buttons = document.querySelectorAll('.role-btn');
+        const clientScreen = document.getElementById('client-screen');
+        const masterScreen = document.getElementById('master-screen');
+        
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        if(role === 'client') {
+            buttons[0].classList.add('active');
+            clientScreen.classList.add('active');
+            masterScreen.classList.remove('active');
+        } else {
+            buttons[1].classList.add('active');
+            masterScreen.classList.add('active');
+            clientScreen.classList.remove('active');
+        }
+    }
+
+    function createOrder() {
+        const title = document.getElementById('task-title').value;
+        const price = document.getElementById('task-price').value;
+        const address = document.getElementById('task-address').value;
+        
+        if(!title || !price || !address) {
+            alert('Пожалуйста, заполните все поля!');
+            return;
+        }
+        
+        alert('Заказ "' + title + '" успешно создан и отправлен в обработку безопасной сделки!');
+    }
+</script>
+
+</body>
+</html>
